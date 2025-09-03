@@ -47,8 +47,8 @@ jobs:
           cp build/metrics/tech-debt-metrics.json _out/data/${org}/${name}/latest.json
 
           cd _out
-          git config user.name "metrics-bot"
-          git config user.email "metrics-bot@users.noreply.github.com"
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
           git add -A
           git commit -m "metrics: ${REPO_SLUG} @ ${ts}" || echo "no changes"
           git push origin HEAD || echo "nothing to push"
