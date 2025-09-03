@@ -1,0 +1,54 @@
+name: Run Metrics (reusable, grep)
+on:
+  workflow_call:
+    inputs:
+      repo_slug:
+        required: true
+        type: string
+      # 例: takumi-saito/MinimalLauncherApp（複数 org でもOK）
+    secrets:
+      LEGACY_GRAPH_TOKEN:
+        required: true   # legacy-graph に push するためのトークン
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      # 呼び出し元（計測対象）リポをチェックアウト
+      - uses: actions/checkout@v4
+
+      # 計測スクリプトを取得
+      - name: Checkout metrics tools
+        uses: actions/checkout@v4
+        with:
+          repository: takumi-saito/android-legacy-metrics
+          path: _tools
+
+      - name: Run grep metrics
+        run: bash _tools/scripts/grep_scan.sh
+
+      - name: Job summary
+        run: |
+          echo "## Tech Debt Snapshot" >> $GITHUB_STEP_SUMMARY
+          jq '{files, ui, language, events, buildsys, legacy, supportlib}' build/metrics/tech-debt-metrics.json >> $GITHUB_STEP_SUMMARY
+
+      - name: Push JSON to legacy-graph
+        env:
+          GH_TOKEN: ${{ secrets.LEGACY_GRAPH_TOKEN }}
+          REPO_SLUG: ${{ inputs.repo_slug }}
+        run: |
+          ts=$(date -u +%Y%m%dT%H%M%SZ)
+          org=$(echo "$REPO_SLUG" | cut -d'/' -f1)
+          name=$(echo "$REPO_SLUG" | cut -d'/' -f2)
+
+          git clone https://x-access-token:${GH_TOKEN}@github.com/takumi-saito/legacy-graph.git _out
+          mkdir -p _out/data/${org}/${name}
+          cp build/metrics/tech-debt-metrics.json _out/data/${org}/${name}/${ts}.json
+          cp build/metrics/tech-debt-metrics.json _out/data/${org}/${name}/latest.json
+
+          cd _out
+          git config user.name "metrics-bot"
+          git config user.email "metrics-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "metrics: ${REPO_SLUG} @ ${ts}" || echo "no changes"
+          git push origin HEAD || echo "nothing to push"

@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mapfile -t SRC < <(git ls-files \
+  | grep -Ev '(^|/)(build|\.gradle|gradle/wrapper|generated|third_party)/' \
+  | grep -E '\.(kt|java|xml|gradle|gradle\.kts)$' || true)
+
+count_grep() { grep -Hn -E "$1" "${SRC[@]}" 2>/dev/null | wc -l | tr -d ' ' || echo 0; }
+count_files() { printf "%s\n" "${SRC[@]}" | grep -E "$1" | wc -l | tr -d ' ' || echo 0; }
+
+KT_COUNT=$(count_files '\.kt$')
+JAVA_COUNT=$(count_files '\.java$')
+XML_LAYOUT_COUNT=$(printf "%s\n" "${SRC[@]}" | grep -E 'src/.*/res/layout/.*\.xml$' | wc -l | tr -d ' ' || echo 0)
+DB_LAYOUT_COUNT=$(grep -l "<layout" $(printf "%s\n" "${SRC[@]}" | grep -E 'src/.*/res/layout/.*\.xml$') 2>/dev/null | wc -l | tr -d ' ' || echo 0)
+
+COMPOSABLE_FUNCS=$(count_grep '@Composable')
+VIEW_FILE_LIKE=$(grep -l -E '^(package|import).*(android\.view\.|android\.widget\.|androidx\.appcompat\.widget\.|androidx\.recyclerview\.widget\.|androidx\.viewpager2\.widget\.)' \
+  $(printf "%s\n" "${SRC[@]}" | grep -E '\.kt$|\.java$') 2>/dev/null | wc -l | tr -d ' ' || echo 0)
+
+JAVA_RATIO=$(python3 - <<PY
+kt=${KT_COUNT}; jv=${JAVA_COUNT}
+print(round(jv/(kt+jv), 4) if (kt+jv)>0 else 0.0)
+PY
+)
+
+RX_IMPORTS=$(count_grep 'import +io\.reactivex|import +io\.reactivestreams')
+EVENTBUS_IMPORTS=$(count_grep 'import +org\.greenrobot\.eventbus')
+FLOW_IMPORTS=$(count_grep 'import +kotlinx\.coroutines\.flow')
+LIVEDATA_IMPORTS=$(count_grep 'import +androidx\.lifecycle\.(Mutable)?LiveData')
+
+KAPT_PLUGINS=$(count_grep 'id\("kotlin-kapt"\)|apply +plugin *: *"kotlin-kapt"')
+KAPT_DEPS=$(count_grep 'kapt\(')
+KSP_PLUGINS=$(count_grep 'id\("com.google.devtools.ksp"\)|apply +plugin *: *"com.google.devtools.ksp"')
+DATABINDING_ON=$(count_grep 'buildFeatures\s*\{[^}]*dataBinding\s*=\s*true')
+
+ASYNC_USAGES=$(count_grep 'import +android\.os\.AsyncTask|extends +AsyncTask(\<.*\>)?')
+LOADER_USAGES=$(count_grep 'import +(androidx\.loader\.|android\.support\.v4\.content\.Loader|androidx\.loader\.app\.LoaderManager)')
+FW_FRAGMENT_USAGES=$(count_grep 'import +android\.app\.Fragment|extends +Fragment(\s|<|$)')
+SUPPORT_FRAGMENT_USAGES=$(count_grep 'import +android\.support\.v4\.app\.Fragment')
+FRAGMENT_XML_TAGS=$(printf "%s\n" "${SRC[@]}" | grep -E 'src/.*/res/layout/.*\.xml$' \
+  | xargs -r grep -Hn -E '^\s*<fragment(\s|>)' 2>/dev/null | wc -l | tr -d ' ' || echo 0)
+SUPPORT_CODE_REFS=$(count_grep 'android\.support\.')
+SUPPORT_DEP_REFS=$(count_grep 'com\.android\.support:')
+
+mkdir -p build/metrics
+python3 - <<PY > build/metrics/tech-debt-metrics.json
+import json,datetime
+print(json.dumps({
+  "generated_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+  "files": {"kotlin": ${KT_COUNT}, "java": ${JAVA_COUNT}},
+  "ui": {
+    "xml_layout_files": ${XML_LAYOUT_COUNT},
+    "databinding_layout_files": ${DB_LAYOUT_COUNT},
+    "composable_functions": ${COMPOSABLE_FUNCS},
+    "kotlin_view_like_files": ${VIEW_FILE_LIKE}
+  },
+  "language": {"java_file_ratio": ${JAVA_RATIO}},
+  "events": {
+    "rx_imports": ${RX_IMPORTS},
+    "eventbus_imports": ${EVENTBUS_IMPORTS},
+    "flow_imports": ${FLOW_IMPORTS},
+    "livedata_imports": ${LIVEDATA_IMPORTS}
+  },
+  "buildsys": {
+    "kapt_plugins_count": ${KAPT_PLUGINS},
+    "kapt_deps_count": ${KAPT_DEPS},
+    "ksp_plugins_count": ${KSP_PLUGINS},
+    "dataBinding_enabled_modules": ${DATABINDING_ON}
+  },
+  "legacy": {
+    "asyncTask_usages": ${ASYNC_USAGES},
+    "loader_usages": ${LOADER_USAGES},
+    "frameworkFragment_usages": ${FW_FRAGMENT_USAGES},
+    "supportFragment_usages": ${SUPPORT_FRAGMENT_USAGES},
+    "fragmentXml_tags": ${FRAGMENT_XML_TAGS}
+  },
+  "supportlib": {
+    "support_code_refs": ${SUPPORT_CODE_REFS},
+    "support_dep_refs": ${SUPPORT_DEP_REFS}
+  }
+}, ensure_ascii=False))
+PY
+echo "✅ build/metrics/tech-debt-metrics.json"
