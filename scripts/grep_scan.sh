@@ -26,9 +26,15 @@ count_files() {
 KT_COUNT=$(count_files '\.kt$')
 JAVA_COUNT=$(count_files '\.java$')
 XML_LAYOUT_COUNT=$(if [ ${#SRC[@]} -eq 0 ]; then echo 0; else printf "%s\n" "${SRC[@]}" | grep -E 'src/.*/res/layout/.*\.xml$' | wc -l | tr -d ' ' || echo 0; fi)
-DB_LAYOUT_COUNT=$(if [ ${#SRC[@]} -eq 0 ]; then echo 0; else 
+DB_LAYOUT_COUNT=$(if [ ${#SRC[@]} -eq 0 ]; then 
+  echo 0
+else 
   layout_files=$(printf "%s\n" "${SRC[@]}" | grep -E 'src/.*/res/layout/.*\.xml$' || true)
-  if [ -z "$layout_files" ]; then echo 0; else echo "$layout_files" | xargs -r grep -l "<layout" 2>/dev/null | wc -l | tr -d ' ' || echo 0; fi
+  if [ -z "$layout_files" ]; then 
+    echo 0
+  else 
+    echo "$layout_files" | xargs -r grep -l "<layout" 2>/dev/null | wc -l | tr -d ' ' || echo 0
+  fi
 fi)
 
 COMPOSABLE_FUNCS=$(count_grep '@Composable')
@@ -65,6 +71,31 @@ SUPPORT_CODE_REFS=$(count_grep 'android\.support\.')
 SUPPORT_DEP_REFS=$(count_grep 'com\.android\.support:')
 
 mkdir -p build/metrics
+
+# 変数をクリーンアップして数値のみにする
+KT_COUNT="${KT_COUNT:-0}"
+JAVA_COUNT="${JAVA_COUNT:-0}"
+XML_LAYOUT_COUNT="${XML_LAYOUT_COUNT:-0}"
+DB_LAYOUT_COUNT="${DB_LAYOUT_COUNT:-0}"
+COMPOSABLE_FUNCS="${COMPOSABLE_FUNCS:-0}"
+VIEW_FILE_LIKE="${VIEW_FILE_LIKE:-0}"
+JAVA_RATIO="${JAVA_RATIO:-0.0}"
+RX_IMPORTS="${RX_IMPORTS:-0}"
+EVENTBUS_IMPORTS="${EVENTBUS_IMPORTS:-0}"
+FLOW_IMPORTS="${FLOW_IMPORTS:-0}"
+LIVEDATA_IMPORTS="${LIVEDATA_IMPORTS:-0}"
+KAPT_PLUGINS="${KAPT_PLUGINS:-0}"
+KAPT_DEPS="${KAPT_DEPS:-0}"
+KSP_PLUGINS="${KSP_PLUGINS:-0}"
+DATABINDING_ON="${DATABINDING_ON:-0}"
+ASYNC_USAGES="${ASYNC_USAGES:-0}"
+LOADER_USAGES="${LOADER_USAGES:-0}"
+FW_FRAGMENT_USAGES="${FW_FRAGMENT_USAGES:-0}"
+SUPPORT_FRAGMENT_USAGES="${SUPPORT_FRAGMENT_USAGES:-0}"
+FRAGMENT_XML_TAGS="${FRAGMENT_XML_TAGS:-0}"
+SUPPORT_CODE_REFS="${SUPPORT_CODE_REFS:-0}"
+SUPPORT_DEP_REFS="${SUPPORT_DEP_REFS:-0}"
+
 python3 - <<PY > build/metrics/tech-debt-metrics.json
 import json,datetime
 print(json.dumps({
