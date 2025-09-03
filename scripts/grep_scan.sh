@@ -72,29 +72,29 @@ SUPPORT_DEP_REFS=$(count_grep 'com\.android\.support:')
 
 mkdir -p build/metrics
 
-# 変数をクリーンアップして数値のみにする
-KT_COUNT="${KT_COUNT:-0}"
-JAVA_COUNT="${JAVA_COUNT:-0}"
-XML_LAYOUT_COUNT="${XML_LAYOUT_COUNT:-0}"
-DB_LAYOUT_COUNT="${DB_LAYOUT_COUNT:-0}"
-COMPOSABLE_FUNCS="${COMPOSABLE_FUNCS:-0}"
-VIEW_FILE_LIKE="${VIEW_FILE_LIKE:-0}"
-JAVA_RATIO="${JAVA_RATIO:-0.0}"
-RX_IMPORTS="${RX_IMPORTS:-0}"
-EVENTBUS_IMPORTS="${EVENTBUS_IMPORTS:-0}"
-FLOW_IMPORTS="${FLOW_IMPORTS:-0}"
-LIVEDATA_IMPORTS="${LIVEDATA_IMPORTS:-0}"
-KAPT_PLUGINS="${KAPT_PLUGINS:-0}"
-KAPT_DEPS="${KAPT_DEPS:-0}"
-KSP_PLUGINS="${KSP_PLUGINS:-0}"
-DATABINDING_ON="${DATABINDING_ON:-0}"
-ASYNC_USAGES="${ASYNC_USAGES:-0}"
-LOADER_USAGES="${LOADER_USAGES:-0}"
-FW_FRAGMENT_USAGES="${FW_FRAGMENT_USAGES:-0}"
-SUPPORT_FRAGMENT_USAGES="${SUPPORT_FRAGMENT_USAGES:-0}"
-FRAGMENT_XML_TAGS="${FRAGMENT_XML_TAGS:-0}"
-SUPPORT_CODE_REFS="${SUPPORT_CODE_REFS:-0}"
-SUPPORT_DEP_REFS="${SUPPORT_DEP_REFS:-0}"
+# 変数をクリーンアップして数値のみにする（改行を確実に除去）
+KT_COUNT=$(echo "${KT_COUNT:-0}" | tr -d '\n\r' | head -1)
+JAVA_COUNT=$(echo "${JAVA_COUNT:-0}" | tr -d '\n\r' | head -1)
+XML_LAYOUT_COUNT=$(echo "${XML_LAYOUT_COUNT:-0}" | tr -d '\n\r' | head -1)
+DB_LAYOUT_COUNT=$(echo "${DB_LAYOUT_COUNT:-0}" | tr -d '\n\r' | head -1)
+COMPOSABLE_FUNCS=$(echo "${COMPOSABLE_FUNCS:-0}" | tr -d '\n\r' | head -1)
+VIEW_FILE_LIKE=$(echo "${VIEW_FILE_LIKE:-0}" | tr -d '\n\r' | head -1)
+JAVA_RATIO=$(echo "${JAVA_RATIO:-0.0}" | tr -d '\n\r' | head -1)
+RX_IMPORTS=$(echo "${RX_IMPORTS:-0}" | tr -d '\n\r' | head -1)
+EVENTBUS_IMPORTS=$(echo "${EVENTBUS_IMPORTS:-0}" | tr -d '\n\r' | head -1)
+FLOW_IMPORTS=$(echo "${FLOW_IMPORTS:-0}" | tr -d '\n\r' | head -1)
+LIVEDATA_IMPORTS=$(echo "${LIVEDATA_IMPORTS:-0}" | tr -d '\n\r' | head -1)
+KAPT_PLUGINS=$(echo "${KAPT_PLUGINS:-0}" | tr -d '\n\r' | head -1)
+KAPT_DEPS=$(echo "${KAPT_DEPS:-0}" | tr -d '\n\r' | head -1)
+KSP_PLUGINS=$(echo "${KSP_PLUGINS:-0}" | tr -d '\n\r' | head -1)
+DATABINDING_ON=$(echo "${DATABINDING_ON:-0}" | tr -d '\n\r' | head -1)
+ASYNC_USAGES=$(echo "${ASYNC_USAGES:-0}" | tr -d '\n\r' | head -1)
+LOADER_USAGES=$(echo "${LOADER_USAGES:-0}" | tr -d '\n\r' | head -1)
+FW_FRAGMENT_USAGES=$(echo "${FW_FRAGMENT_USAGES:-0}" | tr -d '\n\r' | head -1)
+SUPPORT_FRAGMENT_USAGES=$(echo "${SUPPORT_FRAGMENT_USAGES:-0}" | tr -d '\n\r' | head -1)
+FRAGMENT_XML_TAGS=$(echo "${FRAGMENT_XML_TAGS:-0}" | tr -d '\n\r' | head -1)
+SUPPORT_CODE_REFS=$(echo "${SUPPORT_CODE_REFS:-0}" | tr -d '\n\r' | head -1)
+SUPPORT_DEP_REFS=$(echo "${SUPPORT_DEP_REFS:-0}" | tr -d '\n\r' | head -1)
 
 python3 - <<PY > build/metrics/tech-debt-metrics.json
 import json,datetime
