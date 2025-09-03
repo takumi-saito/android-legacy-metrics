@@ -98,38 +98,52 @@ SUPPORT_DEP_REFS="${SUPPORT_DEP_REFS:-0}"
 
 python3 - <<PY > build/metrics/tech-debt-metrics.json
 import json,datetime
+
+# 文字列として渡して、Python側で数値に変換
+def to_int(s):
+    try:
+        return int(s.strip())
+    except:
+        return 0
+
+def to_float(s):
+    try:
+        return float(s.strip())
+    except:
+        return 0.0
+
 print(json.dumps({
   "generated_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-  "files": {"kotlin": ${KT_COUNT}, "java": ${JAVA_COUNT}},
+  "files": {"kotlin": to_int("${KT_COUNT}"), "java": to_int("${JAVA_COUNT}")},
   "ui": {
-    "xml_layout_files": ${XML_LAYOUT_COUNT},
-    "databinding_layout_files": ${DB_LAYOUT_COUNT},
-    "composable_functions": ${COMPOSABLE_FUNCS},
-    "kotlin_view_like_files": ${VIEW_FILE_LIKE}
+    "xml_layout_files": to_int("${XML_LAYOUT_COUNT}"),
+    "databinding_layout_files": to_int("${DB_LAYOUT_COUNT}"),
+    "composable_functions": to_int("${COMPOSABLE_FUNCS}"),
+    "kotlin_view_like_files": to_int("${VIEW_FILE_LIKE}")
   },
-  "language": {"java_file_ratio": ${JAVA_RATIO}},
+  "language": {"java_file_ratio": to_float("${JAVA_RATIO}")},
   "events": {
-    "rx_imports": ${RX_IMPORTS},
-    "eventbus_imports": ${EVENTBUS_IMPORTS},
-    "flow_imports": ${FLOW_IMPORTS},
-    "livedata_imports": ${LIVEDATA_IMPORTS}
+    "rx_imports": to_int("${RX_IMPORTS}"),
+    "eventbus_imports": to_int("${EVENTBUS_IMPORTS}"),
+    "flow_imports": to_int("${FLOW_IMPORTS}"),
+    "livedata_imports": to_int("${LIVEDATA_IMPORTS}")
   },
   "buildsys": {
-    "kapt_plugins_count": ${KAPT_PLUGINS},
-    "kapt_deps_count": ${KAPT_DEPS},
-    "ksp_plugins_count": ${KSP_PLUGINS},
-    "dataBinding_enabled_modules": ${DATABINDING_ON}
+    "kapt_plugins_count": to_int("${KAPT_PLUGINS}"),
+    "kapt_deps_count": to_int("${KAPT_DEPS}"),
+    "ksp_plugins_count": to_int("${KSP_PLUGINS}"),
+    "dataBinding_enabled_modules": to_int("${DATABINDING_ON}")
   },
   "legacy": {
-    "asyncTask_usages": ${ASYNC_USAGES},
-    "loader_usages": ${LOADER_USAGES},
-    "frameworkFragment_usages": ${FW_FRAGMENT_USAGES},
-    "supportFragment_usages": ${SUPPORT_FRAGMENT_USAGES},
-    "fragmentXml_tags": ${FRAGMENT_XML_TAGS}
+    "asyncTask_usages": to_int("${ASYNC_USAGES}"),
+    "loader_usages": to_int("${LOADER_USAGES}"),
+    "frameworkFragment_usages": to_int("${FW_FRAGMENT_USAGES}"),
+    "supportFragment_usages": to_int("${SUPPORT_FRAGMENT_USAGES}"),
+    "fragmentXml_tags": to_int("${FRAGMENT_XML_TAGS}")
   },
   "supportlib": {
-    "support_code_refs": ${SUPPORT_CODE_REFS},
-    "support_dep_refs": ${SUPPORT_DEP_REFS}
+    "support_code_refs": to_int("${SUPPORT_CODE_REFS}"),
+    "support_dep_refs": to_int("${SUPPORT_DEP_REFS}")
   }
 }, ensure_ascii=False))
 PY
