@@ -1,21 +1,41 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-mapfile -t SRC < <(git ls-files \
+SRC=()
+while IFS= read -r line; do
+  SRC+=("$line")
+done < <(git ls-files \
   | grep -Ev '(^|/)(build|\.gradle|gradle/wrapper|generated|third_party)/' \
   | grep -E '\.(kt|java|xml|gradle|gradle\.kts)$' || true)
 
-count_grep() { grep -Hn -E "$1" "${SRC[@]}" 2>/dev/null | wc -l | tr -d ' ' || echo 0; }
-count_files() { printf "%s\n" "${SRC[@]}" | grep -E "$1" | wc -l | tr -d ' ' || echo 0; }
+count_grep() { 
+  if [ ${#SRC[@]} -eq 0 ]; then
+    echo 0
+  else
+    grep -Hn -E "$1" "${SRC[@]}" 2>/dev/null | wc -l | tr -d ' ' || echo 0
+  fi
+}
+count_files() { 
+  if [ ${#SRC[@]} -eq 0 ]; then
+    echo 0
+  else
+    printf "%s\n" "${SRC[@]}" | grep -E "$1" | wc -l | tr -d ' ' || echo 0
+  fi
+}
 
 KT_COUNT=$(count_files '\.kt$')
 JAVA_COUNT=$(count_files '\.java$')
-XML_LAYOUT_COUNT=$(printf "%s\n" "${SRC[@]}" | grep -E 'src/.*/res/layout/.*\.xml$' | wc -l | tr -d ' ' || echo 0)
-DB_LAYOUT_COUNT=$(grep -l "<layout" $(printf "%s\n" "${SRC[@]}" | grep -E 'src/.*/res/layout/.*\.xml$') 2>/dev/null | wc -l | tr -d ' ' || echo 0)
+XML_LAYOUT_COUNT=$(if [ ${#SRC[@]} -eq 0 ]; then echo 0; else printf "%s\n" "${SRC[@]}" | grep -E 'src/.*/res/layout/.*\.xml$' | wc -l | tr -d ' ' || echo 0; fi)
+DB_LAYOUT_COUNT=$(if [ ${#SRC[@]} -eq 0 ]; then echo 0; else 
+  layout_files=$(printf "%s\n" "${SRC[@]}" | grep -E 'src/.*/res/layout/.*\.xml$' || true)
+  if [ -z "$layout_files" ]; then echo 0; else echo "$layout_files" | xargs -r grep -l "<layout" 2>/dev/null | wc -l | tr -d ' ' || echo 0; fi
+fi)
 
 COMPOSABLE_FUNCS=$(count_grep '@Composable')
-VIEW_FILE_LIKE=$(grep -l -E '^(package|import).*(android\.view\.|android\.widget\.|androidx\.appcompat\.widget\.|androidx\.recyclerview\.widget\.|androidx\.viewpager2\.widget\.)' \
-  $(printf "%s\n" "${SRC[@]}" | grep -E '\.kt$|\.java$') 2>/dev/null | wc -l | tr -d ' ' || echo 0)
+VIEW_FILE_LIKE=$(if [ ${#SRC[@]} -eq 0 ]; then echo 0; else
+  source_files=$(printf "%s\n" "${SRC[@]}" | grep -E '\.kt$|\.java$' || true)
+  if [ -z "$source_files" ]; then echo 0; else echo "$source_files" | xargs -r grep -l -E '^(package|import).*(android\.view\.|android\.widget\.|androidx\.appcompat\.widget\.|androidx\.recyclerview\.widget\.|androidx\.viewpager2\.widget\.)' 2>/dev/null | wc -l | tr -d ' ' || echo 0; fi
+fi)
 
 JAVA_RATIO=$(python3 - <<PY
 kt=${KT_COUNT}; jv=${JAVA_COUNT}
@@ -37,8 +57,10 @@ ASYNC_USAGES=$(count_grep 'import +android\.os\.AsyncTask|extends +AsyncTask(\<.
 LOADER_USAGES=$(count_grep 'import +(androidx\.loader\.|android\.support\.v4\.content\.Loader|androidx\.loader\.app\.LoaderManager)')
 FW_FRAGMENT_USAGES=$(count_grep 'import +android\.app\.Fragment|extends +Fragment(\s|<|$)')
 SUPPORT_FRAGMENT_USAGES=$(count_grep 'import +android\.support\.v4\.app\.Fragment')
-FRAGMENT_XML_TAGS=$(printf "%s\n" "${SRC[@]}" | grep -E 'src/.*/res/layout/.*\.xml$' \
-  | xargs -r grep -Hn -E '^\s*<fragment(\s|>)' 2>/dev/null | wc -l | tr -d ' ' || echo 0)
+FRAGMENT_XML_TAGS=$(if [ ${#SRC[@]} -eq 0 ]; then echo 0; else
+  layout_files=$(printf "%s\n" "${SRC[@]}" | grep -E 'src/.*/res/layout/.*\.xml$' || true)
+  if [ -z "$layout_files" ]; then echo 0; else echo "$layout_files" | xargs -r grep -Hn -E '^\s*<fragment(\s|>)' 2>/dev/null | wc -l | tr -d ' ' || echo 0; fi
+fi)
 SUPPORT_CODE_REFS=$(count_grep 'android\.support\.')
 SUPPORT_DEP_REFS=$(count_grep 'com\.android\.support:')
 
